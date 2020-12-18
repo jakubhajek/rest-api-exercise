@@ -1,0 +1,115 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongo
+spec:
+  serviceName: mongo
+  selector:
+    matchLabels:
+      role: mongo
+      environment: test
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        role: mongo
+        environment: test
+    spec:
+      containers:
+      - name: mongodb-standalone
+        image: mongo:4.4.2
+        ports:
+        - containerPort: 27017
+        livenessProbe:
+          exec:
+            command: 
+            - bash
+            - "-c"
+            - |
+              mongo -u`cat /run/mongo-secrets/MONGO_INITDB_ROOT_USERNAME` -p`cat /run/mongo-secrets/MONGO_INITDB_ROOT_PASSWORD` --eval db.adminCommand\(\"ping\"\) 
+          failureThreshold: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 5
+        readinessProbe:
+          exec:
+            command: 
+            - bash
+            - "-c"
+            - |
+              mongo -u`cat /run/mongo-secrets/MONGO_INITDB_ROOT_USERNAME` -p`cat /run/mongo-secrets/MONGO_INITDB_ROOT_PASSWORD` --eval db.adminCommand\(\"ping\"\) 
+          failureThreshold: 3
+          periodSeconds: 10
+          successThreshold: 1
+          timeoutSeconds: 1
+        env:
+          - name: MONGO_INITDB_ROOT_USERNAME_FILE
+            value: /run/mongo-secrets/MONGO_INITDB_ROOT_USERNAME
+          - name: MONGO_INITDB_ROOT_PASSWORD_FILE
+            value: /run/mongo-secrets/MONGO_INITDB_ROOT_PASSWORD
+          - name: MONGO_INITDB_DATABASE
+            value: people
+        resources:
+          requests:
+            cpu: 200m
+            memory: 128Mi
+          limits:
+            cpu: 400m
+            memory: 256Mi
+
+        volumeMounts:
+        - name: mongo-credentials
+          mountPath: /run/mongo-secrets
+          readOnly: true
+        - name: workdir
+          mountPath: /tmp/workdir
+          readOnly: false
+        - name: mongo-scripts
+          mountPath: /docker-entrypoint-initdb.d
+          readOnly: true
+        - name: mongodb-data
+          mountPath: /data/db
+
+      volumes: 
+      - name: mongo-credentials
+        secret: 
+          secretName: mongo-credentials
+          items: 
+            - key: MONGO_INITDB_ROOT_USERNAME
+              path: MONGO_INITDB_ROOT_USERNAME
+              mode: 0444
+            - key: MONGO_INITDB_ROOT_PASSWORD
+              path: MONGO_INITDB_ROOT_PASSWORD
+              mode: 0444
+      - name: mongo-scripts
+        configMap:
+          name: mongo-import-data
+          items:
+           - key: 01-import-data.sh
+             path: 01-import-data.sh
+
+      - name: workdir
+        emptyDir: {}
+        
+      initContainers:
+      - name: get-the-csv
+        image: busybox
+        command:
+        - wget
+        - "-O"
+        - "/tmp/workdir/titanic.csv"
+        - https://gitlab.com/jakubhajek/API-Exercise/-/raw/master/titanic.csv
+        volumeMounts:
+        - name: workdir
+          mountPath: "/tmp/workdir"
+
+  volumeClaimTemplates:
+  - metadata:
+      name: mongodb-data
+    spec:
+      accessModes: 
+        - ReadWriteOnce
+      storageClassName: standard # minikube
+      resources:
+        requests: 
+          storage: 512Mi

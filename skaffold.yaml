@@ -1,0 +1,17 @@
+apiVersion: skaffold/v2beta9
+kind: Config
+metadata:
+  name: node-api
+build:
+  artifacts:
+    - image: node-api
+      context: ./
+  tagPolicy:
+    gitCommit: {}
+  local:
+    useBuildkit: false
+    push: true
+deploy:
+  kubectl:
+    manifests:
+    - ./k8s/node-api/**.yaml

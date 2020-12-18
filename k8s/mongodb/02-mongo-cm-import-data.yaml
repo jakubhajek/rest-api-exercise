@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+    name: mongo-import-data
+data:
+  01-import-data.sh: |
+    #!/bin/bash
+    export USER=$(cat /run/mongo-secrets/MONGO_INITDB_ROOT_USERNAME)
+    export PASS=$(cat /run/mongo-secrets/MONGO_INITDB_ROOT_PASSWORD)
+    sed -i '1d' /tmp/workdir/titanic.csv #delete the headerline from csv
+    mongoimport --host=127.0.0.1 --db ${MONGO_INITDB_DATABASE} -c titanic --type csv --file /tmp/workdir/titanic.csv -u $USER -p $PASS --authenticationDatabase=admin --columnsHaveTypes --fields "survived.boolean(),passengerClass.int32(),name.string(),sex.string(),age.string(),siblingsOrSpousesAboard.int32(),parentsOrChildrenAboard.int32(),fare.string()"

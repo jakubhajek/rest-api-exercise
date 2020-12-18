@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: node-api
+  name: node-api
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: node-api
+  strategy: 
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2
+      maxUnavailable: 0 
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: node-api
+    spec:
+      containers:
+      - image: node-api
+        name: node-api
+        ports:
+        - containerPort: 3000
+          name: web
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 3000
+          failureThreshold: 1
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 2
+        livenessProbe: 
+          httpGet:
+            path: /healthz
+            port: 3000
+          failureThreshold: 5
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          successThreshold: 1
+          timeoutSeconds: 2
+        resources:
+          requests:
+            cpu: 100m
+            memory: 64Mi
+          limits:
+            cpu: 200m
+            memory: 128Mi
+        volumeMounts: 
+          - name: node-secrets
+            mountPath: /run/api/
+      imagePullSecrets:
+        - name: regcred
+      volumes:
+        - name: node-secrets
+          secret:
+            secretName: node-secrets
+            items:
+            - key: .env
+              path: .env
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-api
+  labels:
+    app: node-api
+spec:
+  ports:
+  - name: node-api
+    port: 3000
+    targetPort: 3000
+  selector:
+    app: node-api
