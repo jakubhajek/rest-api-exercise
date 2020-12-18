@@ -98,7 +98,7 @@ spec:
         - wget
         - "-O"
         - "/tmp/workdir/titanic.csv"
-        - https://gitlab.com/jakubhajek/API-Exercise/-/raw/master/titanic.csv
+	- https://raw.githubusercontent.com/jakubhajek/rest-api-exercise/master/titanic.csv
         volumeMounts:
         - name: workdir
           mountPath: "/tmp/workdir"
