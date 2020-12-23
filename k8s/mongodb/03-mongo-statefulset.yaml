@@ -90,7 +90,7 @@ spec:
 
       - name: workdir
         emptyDir: {}
-        
+
       initContainers:
       - name: get-the-csv
         image: busybox
@@ -98,7 +98,7 @@ spec:
         - wget
         - "-O"
         - "/tmp/workdir/titanic.csv"
-	- https://raw.githubusercontent.com/jakubhajek/rest-api-exercise/master/titanic.csv
+        - https://raw.githubusercontent.com/jakubhajek/rest-api-exercise/master/titanic.csv
         volumeMounts:
         - name: workdir
           mountPath: "/tmp/workdir"
@@ -107,9 +107,9 @@ spec:
   - metadata:
       name: mongodb-data
     spec:
-      accessModes: 
+      accessModes:
         - ReadWriteOnce
       storageClassName: standard # minikube
       resources:
-        requests: 
+        requests:
           storage: 512Mi
